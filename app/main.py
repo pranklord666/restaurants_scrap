@@ -1,27 +1,17 @@
-from flask import Flask, jsonify
-from .database import get_articles, init_db  # Use a relative import
+from flask import Flask
 
 def create_app():
     app = Flask(__name__)
     
-    # Initialize the database (create the articles table) before the first request.
-    @app.before_first_request
-    def initialize():
-        init_db()
-    
+    # Instead of before_first_request, we use before_serving to reliably run startup tasks.
+    @app.before_serving
+    def startup_tasks():
+        # Add any initialization logic here
+        print("Running startup tasks...")
+
+    # Define a sample route (adjust or add more routes as needed)
     @app.route("/")
     def index():
-        articles = get_articles()
-        # Convert tuples to a list of dictionaries for JSON output.
-        article_list = [
-            {"id": row[0], "title": row[1], "summary": row[2], "keyword": row[3]}
-            for row in articles
-        ]
-        return jsonify(article_list)
-    
-    return app
+        return "Hello, world!"
 
-if __name__ == "__main__":
-    app = create_app()
-    app.run(host="0.0.0.0", port=10000)
-    
+    return app
