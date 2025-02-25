@@ -1,32 +1,31 @@
-import psycopg2
 import os
+import psycopg2
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+def get_connection():
+    # Ensure your DATABASE_URL environment variable is set correctly.
+    return psycopg2.connect(os.environ.get("DATABASE_URL"))
 
-def get_db_connection():
-    if not DATABASE_URL:
-        raise ValueError("DATABASE_URL environment variable not set")
-    
-    return psycopg2.connect(DATABASE_URL)
+def init_db():
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Create the articles table if it does not exist.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS articles (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            summary TEXT,
+            keyword VARCHAR(100)
+        );
+    """)
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 def get_articles():
-    conn = get_db_connection()
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id, title, summary, keyword FROM articles")
     articles = cursor.fetchall()
+    cursor.close()
     conn.close()
-    return [{"id": row[0], "title": row[1], "summary": row[2], "keyword": row[3]} for row in articles]
-
-def update_article_keyword(article_id, keyword):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE articles SET keyword = %s WHERE id = %s", (keyword, article_id))
-    conn.commit()
-    conn.close()
-
-def delete_old_articles():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM articles WHERE keyword IS NOT NULL")
-    conn.commit()
-    conn.close()
+    return articles
