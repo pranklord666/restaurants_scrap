@@ -149,8 +149,15 @@ async def process_entry(scraper: ArticleScraper, entry, db_manager: DatabaseMana
         logger.info(f"Processed: {title}")
     except Exception as e:
         logger.error(f"Error processing entry: {e}")
+import os
+import sqlite3
+from datetime import datetime, timedelta
 
 async def main_scraping(db_name):
+    # 1) Clean up yesterday’s articles
+    cleanup_old_articles(db_name)
+
+    # 2) Proceed with your normal scraping
     db_manager = DatabaseManager(db_name)
     await db_manager.init_db()
     scraper = ArticleScraper(db_manager)
@@ -159,10 +166,23 @@ async def main_scraping(db_name):
         for feed_url in RSS_FEEDS:
             logger.info(f"Processing feed: {feed_url}")
             await process_feed(feed_url, scraper, db_manager)
-    except Exception as e:
-        logger.error(e)
     finally:
         await scraper.close_browser()
+
+def cleanup_old_articles(db_name):
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+
+    # Example: remove all rows older than today (i.e. anything < today's date)
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    cursor.execute("""
+        DELETE FROM rss_articles
+        WHERE date < ?
+    """, (today_str,))
+
+    conn.commit()
+    conn.close()
+    logger.info("Old articles have been removed from the DB.")
 
 # --- Summarization Functions ---
 
