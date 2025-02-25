@@ -1,26 +1,23 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify
-from app.database import get_articles, update_article_keyword, delete_old_articles
+from flask import Flask, jsonify
+from database import get_articles, init_db
 
-main = Blueprint("main", __name__)
+app = Flask(__name__)
 
-@main.route("/")
+# Run the initialization to create the table before handling any requests.
+@app.before_first_request
+def initialize():
+    init_db()
+
+@app.route("/")
 def index():
     articles = get_articles()
-    return render_template("index.html", articles=articles)
+    # Convert the list of tuples to a list of dictionaries for better JSON output.
+    article_list = [
+        {"id": row[0], "title": row[1], "summary": row[2], "keyword": row[3]}
+        for row in articles
+    ]
+    return jsonify(article_list)
 
-@main.route("/update_keyword", methods=["POST"])
-def update_keyword():
-    data = request.get_json()
-    article_id = data.get("id")
-    keyword = data.get("keyword")
-
-    if article_id and keyword:
-        update_article_keyword(article_id, keyword)
-        return jsonify({"message": "Article updated successfully"}), 200
-
-    return jsonify({"error": "Invalid request"}), 400
-
-@main.route("/delete_old", methods=["POST"])
-def delete_old():
-    delete_old_articles()
-    return jsonify({"message": "Old articles deleted"}), 200
+if __name__ == "__main__":
+    # The host and port are set according to your current deployment.
+    app.run(host="0.0.0.0", port=10000)
