@@ -1,0 +1,7 @@
+Flask
+requests
+nest-asyncio
+playwright
+httpx
+aiosqlite
+gunicorn
