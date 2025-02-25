@@ -2,8 +2,12 @@ import os
 import psycopg2
 
 def get_connection():
-    # Ensure your DATABASE_URL environment variable is set correctly.
-    return psycopg2.connect(os.environ.get("DATABASE_URL"))
+    # Use the provided DATABASE_URL or fallback to the given string.
+    DATABASE_URL = os.environ.get(
+        "DATABASE_URL",
+        "postgresql://pranklord:qO1pVU1xCxvV4XKMT2jZgAh81KkLp4m5@dpg-cuuvnhdumphs73f3k6ug-a/restaurants_m0cf"
+    )
+    return psycopg2.connect(DATABASE_URL)
 
 def init_db():
     conn = get_connection()
