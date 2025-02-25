@@ -6,7 +6,6 @@ import logging
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
-from typing import Dict
 import os
 
 # Configure logging
@@ -170,7 +169,7 @@ class ArticleScraper:
                 if (main) return main.innerText;
 
                 const paragraphs = Array.from(document.getElementsByTagName('p'));
-                return paragraphs.map(p => p.innerText).join('\\n');
+                return paragraphs.map(p => p.innerText).join('\n');
             }''')
 
         return content
@@ -205,7 +204,7 @@ class ArticleScraper:
                 return Array.from(paragraphs)
                     .map(p => p.innerText)
                     .filter(text => text.length > 100)
-                    .join('\\n');
+                    .join('\n');
             }''')
             return content
         except:
@@ -245,7 +244,7 @@ async def process_feed(feed_url: str, scraper: ArticleScraper, db_manager: Datab
         await asyncio.gather(*chunk)
         await asyncio.sleep(1)
 
-async def process_entry(scraper: ArticleScraper, entry: Dict, db_manager: DatabaseManager):
+async def process_entry(scraper: ArticleScraper, entry, db_manager: DatabaseManager):
     try:
         title = entry.title
         date = scraper.convert_date(entry.get('published', datetime.now().isoformat()))
