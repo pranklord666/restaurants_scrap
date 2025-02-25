@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Article Selection</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h1>Select Articles to Keep</h1>
@@ -16,62 +16,6 @@
         <button type="submit">Submit Selection</button>
     </form>
 
-    <script>
-        // Use Render URL from environment or default
-        const backendUrl = "https://restaurants-scrap.onrender.com";
-
-        // Load articles from backend
-        document.addEventListener("DOMContentLoaded", function () {
-            fetch(`${backendUrl}/articles`)
-                .then(response => response.json())
-                .then(data => {
-                    const articlesDiv = document.getElementById("articles");
-                    articlesDiv.innerHTML = ""; // Clear "Loading..." message
-
-                    if (data.length === 0) {
-                        articlesDiv.innerHTML = "<p>No articles found. Try again later.</p>";
-                        return;
-                    }
-
-                    data.forEach(article => {
-                        const articleElement = document.createElement("div");
-                        articleElement.innerHTML = `
-                            <label>
-                                <input type="radio" name="article_${article.id}" value="in"> In
-                                <input type="radio" name="article_${article.id}" value="out"> Out
-                                ${article.title}
-                            </label><br>
-                        `;
-                        articlesDiv.appendChild(articleElement);
-                    });
-                })
-                .catch(error => {
-                    console.error("Error loading articles:", error);
-                    document.getElementById("articles").innerHTML = "<p>Error loading articles.</p>";
-                });
-        });
-
-        // Handle form submission
-        document.getElementById("articleForm").addEventListener("submit", function (event) {
-            event.preventDefault();
-
-            const selections = {};
-            document.querySelectorAll("input[type=radio]:checked").forEach(input => {
-                const articleId = input.name.split("_")[1];
-                selections[articleId] = input.value;
-            });
-
-            fetch(`${backendUrl}/update-selection`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(selections)
-            })
-            .then(response => response.json())
-            .then(data => alert("Selection saved!"))
-            .catch(error => console.error("Error submitting selection:", error));
-        });
-    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
