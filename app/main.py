@@ -1,18 +1,25 @@
-from flask import Flask
+from flask import Blueprint, jsonify, request
+from . import db
+from .models import Article
 
-def create_app():
-    app = Flask(__name__)
-    
-    # Define a function to run your startup tasks.
-    def startup_tasks():
-        print("Running startup tasks...")
-        # Add any initialization logic here (e.g. connecting to services, scheduling tasks, etc.)
-    
-    # Attach the startup tasks to the app so we can call it later.
-    app.startup_tasks = startup_tasks
+main = Blueprint("main", __name__)
 
-    @app.route("/")
-    def index():
-        return "Hello, world!"
+@main.route("/")
+def index():
+    return "Hello, world!"
 
-    return app
+@main.route("/articles", methods=["GET"])
+def get_articles():
+    articles = Article.query.all()
+    return jsonify([{"id": a.id, "title": a.title, "summary": a.summary, "keyword": a.keyword} for a in articles])
+
+@main.route("/update-selection", methods=["POST"])
+def update_selection():
+    selections = request.get_json()
+    for article_id, status in selections.items():
+        article = Article.query.get(article_id)
+        if article and status == "in":
+            # Handle selected articles (e.g., mark as kept)
+            pass  # Add logic if needed
+    db.session.commit()
+    return jsonify({"message": "Selection saved"})
