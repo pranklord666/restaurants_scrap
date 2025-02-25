@@ -1,9 +1,16 @@
 from flask import Flask
-from .main import main
+from app.main import main as main_blueprint
+import os
 
 def create_app():
     app = Flask(__name__)
-    app.register_blueprint(main)
+    
+    # Load database URL from environment variables
+    app.config["DATABASE_URL"] = os.getenv("DATABASE_URL")
+
+    # Register blueprints
+    app.register_blueprint(main_blueprint)
+
     return app
 
 if __name__ == "__main__":
