@@ -10,6 +10,7 @@ class Article(db.Model):
     keyword = db.Column(db.Text)
     link = db.Column(db.Text, unique=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    status = db.Column(db.String(10), default="out")
 
     def __repr__(self):
         return f"<Article {self.title}>"
