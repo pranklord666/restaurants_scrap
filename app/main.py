@@ -3,13 +3,14 @@ from flask import Flask
 def create_app():
     app = Flask(__name__)
     
-    # Instead of before_first_request, we use before_serving to reliably run startup tasks.
-    @app.before_serving
+    # Define a function to run your startup tasks.
     def startup_tasks():
-        # Add any initialization logic here
         print("Running startup tasks...")
+        # Add any initialization logic here (e.g. connecting to services, scheduling tasks, etc.)
+    
+    # Attach the startup tasks to the app so we can call it later.
+    app.startup_tasks = startup_tasks
 
-    # Define a sample route (adjust or add more routes as needed)
     @app.route("/")
     def index():
         return "Hello, world!"
