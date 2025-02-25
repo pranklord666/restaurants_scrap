@@ -5,7 +5,7 @@ import os
 db = SQLAlchemy()
 
 def create_app():
-    app = Flask(__name__, static_folder='docs', static_url_path='/static')
+    app = Flask(__name__, static_folder='static', static_url_path='/static')
     
     # Load database URL from environment variable
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
