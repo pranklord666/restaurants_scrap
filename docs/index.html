@@ -8,7 +8,7 @@
 </head>
 <body>
     <h1>Select Articles to Keep</h1>
-    
+
     <form id="articleForm">
         <div id="articles">
             <p>Loading articles...</p>
@@ -17,11 +17,12 @@
     </form>
 
     <script>
-        // Replace with your actual backend URL
-        const backendUrl = "https://your-render-backend.com/articles";
+        // Backend URL
+        const backendUrl = "https://restaurants-scrap.onrender.com";
 
+        // Load articles from backend
         document.addEventListener("DOMContentLoaded", function () {
-            fetch(backendUrl)
+            fetch(`${backendUrl}/articles`)
                 .then(response => response.json())
                 .then(data => {
                     const articlesDiv = document.getElementById("articles");
@@ -50,6 +51,7 @@
                 });
         });
 
+        // Handle form submission
         document.getElementById("articleForm").addEventListener("submit", function (event) {
             event.preventDefault();
 
@@ -59,7 +61,7 @@
                 selections[articleId] = input.value;
             });
 
-            fetch("https://your-render-backend.com/update-selection", {
+            fetch(`${backendUrl}/update-selection`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
