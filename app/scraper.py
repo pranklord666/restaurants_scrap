@@ -1,5 +1,5 @@
 import asyncio
-import aiosqlite
+import asyncpg
 import feedparser
 from playwright.async_api import async_playwright
 import logging
@@ -7,7 +7,7 @@ from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 from typing import Dict
-import httpx
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -32,8 +32,36 @@ CONFIG = {
     'stealth_mode': True
 }
 
+class DatabaseManager:
+    def __init__(self, db_url: str):
+        self.db_url = db_url
+
+    async def init_db(self):
+        conn = await asyncpg.connect(self.db_url)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS rss_articles (
+                id SERIAL PRIMARY KEY,
+                date TEXT,
+                title TEXT,
+                raw_content TEXT,
+                summary TEXT,
+                keyword TEXT,
+                link TEXT UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(link)
+            )
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_link ON rss_articles(link)")
+        await conn.close()
+
+    async def article_exists(self, link: str) -> bool:
+        conn = await asyncpg.connect(self.db_url)
+        result = await conn.fetchval("SELECT 1 FROM rss_articles WHERE link = $1", link)
+        await conn.close()
+        return result is not None
+
 class ArticleScraper:
-    def __init__(self, db_manager):
+    def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
         self.browser = None
         self.context = None
@@ -202,7 +230,7 @@ class ArticleScraper:
                 continue
         return datetime.now().strftime("%Y-%m-%d")
 
-async def process_feed(feed_url: str, scraper: ArticleScraper, db_manager):
+async def process_feed(feed_url: str, scraper: ArticleScraper, db_manager: DatabaseManager):
     feed = feedparser.parse(feed_url)
     tasks = []
 
@@ -217,7 +245,7 @@ async def process_feed(feed_url: str, scraper: ArticleScraper, db_manager):
         await asyncio.gather(*chunk)
         await asyncio.sleep(1)
 
-async def process_entry(scraper: ArticleScraper, entry: Dict, db_manager):
+async def process_entry(scraper: ArticleScraper, entry: Dict, db_manager: DatabaseManager):
     try:
         title = entry.title
         date = scraper.convert_date(entry.get('published', datetime.now().isoformat()))
@@ -228,19 +256,20 @@ async def process_entry(scraper: ArticleScraper, entry: Dict, db_manager):
             logger.warning(f"No content retrieved for {link}")
             return
 
-        async with aiosqlite.connect(db_manager.db_name) as conn:
-            await conn.execute("""
-                INSERT OR IGNORE INTO rss_articles (date, title, raw_content, summary, keyword, link)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (date, title, content, "", "", link))
-            await conn.commit()
+        conn = await asyncpg.connect(db_manager.db_url)
+        await conn.execute("""
+            INSERT INTO rss_articles (date, title, raw_content, summary, keyword, link)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (link) DO NOTHING
+        """, date, title, content, "", "", link)
+        await conn.close()
 
         logger.info(f"Successfully processed: {title}")
 
     except Exception as e:
         logger.error(f"Error processing entry: {str(e)}")
 
-async def process_feeds(db_manager):
+async def process_feeds(db_manager: DatabaseManager):
     scraper = ArticleScraper(db_manager)
     await scraper.init_browser()
 
@@ -255,3 +284,12 @@ async def process_feeds(db_manager):
     finally:
         await scraper.close_browser()
         logger.info("Scraping completed.")
+
+if __name__ == '__main__':
+    db_url = os.getenv('DATABASE_URL')
+    if not db_url:
+        raise ValueError("DATABASE_URL environment variable not set")
+
+    db_manager = DatabaseManager(db_url)
+    asyncio.run(db_manager.init_db())
+    asyncio.run(process_feeds(db_manager))
