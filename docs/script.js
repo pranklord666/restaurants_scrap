@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
             selected.push(input.value);
         });
 
-        fetch("https://your-render-backend.com/submit", {  // Replace with your actual Render backend URL
+        fetch("https://restaurants-scrap.onrender.com", {  // Replace with your actual Render backend URL
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ selected_articles: selected })
