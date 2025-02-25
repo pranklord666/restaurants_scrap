@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Article Scraper</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Articles</h1>
+    <form action="{{ url_for('main.update_keyword') }}" method="post">
+        {% for article in articles %}
+            <div class="article">
+                <h2>{{ article.title }}</h2>
+                <p>{{ article.summary }}</p>
+                <input type="hidden" name="article_id" value="{{ article.id }}">
+                <label>
+                    <input type="radio" name="keyword" value="in" {% if article.keyword == 'in' %}checked{% endif %}> In
+                </label>
+                <label>
+                    <input type="radio" name="keyword" value="out" {% if article.keyword == 'out' %}checked{% endif %}> Out
+                </label>
+                <button type="submit">Update</button>
+                <a href="{{ article.link }}" target="_blank">Read more</a>
+            </div>
+        {% endfor %}
+    </form>
+    <a href="{{ url_for('main.delete_old_articles') }}">Delete Old Articles</a>
+</body>
+</html>
