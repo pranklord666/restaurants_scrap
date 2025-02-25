@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Selected Article Summaries</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <h1>Selected Articles Summaries</h1>
@@ -13,7 +13,7 @@
     </div>
 
     <script>
-        fetch("https://your-render-backend.com/results")  // Replace with your actual Render backend URL
+        fetch("https://restaurants-scrap.onrender.com/results")
             .then(response => response.json())
             .then(data => {
                 let summariesDiv = document.getElementById("summaries");
