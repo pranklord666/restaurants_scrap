@@ -18,8 +18,12 @@ def update_selection():
     selections = request.get_json()
     for article_id, status in selections.items():
         article = Article.query.get(article_id)
-        if article and status == "in":
-            # Handle selected articles (e.g., mark as kept)
-            pass  # Add logic if needed
+        if article:
+            article.status = "in" if status == "in" else "out"
     db.session.commit()
     return jsonify({"message": "Selection saved"})
+
+@main.route("/results", methods=["GET"])
+def get_results():
+    articles = Article.query.filter_by(status="in").all()
+    return jsonify([{"title": a.title, "summary": a.summary} for a in articles])
