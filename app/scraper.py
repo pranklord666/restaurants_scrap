@@ -5,7 +5,6 @@ from playwright.async_api import async_playwright
 import logging
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
-from bs4 import BeautifulSoup
 import os
 
 # Configure logging
@@ -47,6 +46,7 @@ class DatabaseManager:
                 keyword TEXT,
                 link TEXT UNIQUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'out',
                 UNIQUE(link)
             )
         """)
@@ -257,10 +257,10 @@ async def process_entry(scraper: ArticleScraper, entry, db_manager: DatabaseMana
 
         conn = await asyncpg.connect(db_manager.db_url)
         await conn.execute("""
-            INSERT INTO rss_articles (date, title, raw_content, summary, keyword, link)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (link) DO NOTHING
-        """, date, title, content, "", "", link)
+            INSERT INTO rss_articles (date, title, raw_content, summary, keyword, link, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (link) DO UPDATE SET status = EXCLUDED.status
+        """, date, title, content, "", "", link, "out")
         await conn.close()
 
         logger.info(f"Successfully processed: {title}")
