@@ -40,4 +40,25 @@ button:hover {
 .error {
     color: red;
     text-align: center;
+    font-weight: bold;
+    margin-top: 10px;
+}
+/* New styles for summaries */
+#summaries {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+#summaryText {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ddd;
+    white-space: pre-wrap;
+    cursor: text;
+    user-select: text;
+    overflow-x: auto;
 }
