@@ -2,7 +2,31 @@ document.addEventListener("DOMContentLoaded", function () {
     const articlesDiv = document.getElementById("articles");
     const summariesDiv = document.getElementById("summaries");
     const summaryText = document.getElementById("summaryText");
+    const loadingIndicator = document.createElement("div"); // For loading animation
+    loadingIndicator.id = "loading";
+    loadingIndicator.style.textAlign = "center";
+    loadingIndicator.style.marginTop = "20px";
+    loadingIndicator.innerHTML = '<div class="spinner"></div><p>Loading summaries...</p>';
     const backendUrl = "https://restaurants-scrap.onrender.com/api";
+
+    // Add spinner CSS
+    const spinnerStyle = document.createElement("style");
+    spinnerStyle.textContent = `
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #28a745;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(spinnerStyle);
 
     articlesDiv.innerHTML = "<p>Loading articles...</p>";
 
@@ -55,11 +79,19 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(data => {
             alert("Selection saved!");
+            // Show loading animation
+            summariesDiv.style.display = "block";
+            summariesDiv.innerHTML = "";
+            summariesDiv.appendChild(loadingIndicator);
+
             // Fetch and display summaries
             fetch(`${backendUrl}/results`)
-                .then(resp => resp.json())
+                .then(resp => {
+                    if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
+                    return resp.json();
+                })
                 .then(results => {
-                    summariesDiv.style.display = "block"; // Show the summaries section
+                    loadingIndicator.remove(); // Remove loading animation
                     let summaryTextContent = "";
                     results.forEach(result => {
                         summaryTextContent += `Title: ${result.title}\nSummary: ${result.summary}\n\n`; // Format for copy-paste
@@ -68,7 +100,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
                 .catch(err => {
                     console.error("Error loading results:", err);
-                    summariesDiv.style.display = "none"; // Hide summaries on error
+                    loadingIndicator.remove(); // Remove loading animation on error
+                    summariesDiv.innerHTML = `<p class='error'>Failed to load summaries: ${err.message}. Please try again later.</p>`;
                     alert(`Failed to load summaries: ${err.message}. Please try again later.`);
                 });
         })
