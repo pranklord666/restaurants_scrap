@@ -30,7 +30,7 @@ def create_app(environ=None, start_response=None):
         "methods": ["GET", "POST", "OPTIONS", "HEAD"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True,
-        "send_wildcard": False  # Explicitly disable wildcard to ensure specific origins are used
+        "send_wildcard": False
     }})
 
     # Register blueprints with API prefix
@@ -44,5 +44,10 @@ def create_app(environ=None, start_response=None):
     # Ensure the app is WSGI-compliant by returning it directly
     return app
 
-# Define a WSGI application object for Gunicorn
-application = create_app()
+# Define a WSGI application object for Gunicorn with proper WSGI callable
+def application(environ, start_response):
+    app = create_app(environ, start_response)
+    return app(environ, start_response)
+
+# Alternative: Use the direct Flask app as the WSGI application
+# application = create_app()
