@@ -29,7 +29,8 @@ def create_app(environ=None, start_response=None):
         "origins": ["https://pranklord666.github.io", "https://pranklord666.github.io/restaurants_scrap"],
         "methods": ["GET", "POST", "OPTIONS", "HEAD"],
         "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
+        "supports_credentials": True,
+        "send_wildcard": False  # Explicitly disable wildcard to ensure specific origins are used
     }})
 
     # Register blueprints with API prefix
