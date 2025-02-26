@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     articlesDiv.innerHTML = "<p>Loading articles...</p>";
 
-    fetch(`${backendUrl}/articles`, { timeout: 30000 })  // Increase timeout for potential SSL retries
+    fetch(`${backendUrl}/articles`, { timeout: 30000 })
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 summariesDiv.appendChild(loadingIndicator);
 
                 // Fetch and display summaries with longer timeout
-                fetch(`${backendUrl}/results`, { timeout: 30000 })  // Increased timeout for Mistral (10-20s)
+                fetch(`${backendUrl}/results`, { timeout: 30000 })
                     .then(resp => {
                         if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
                         return resp.json();
