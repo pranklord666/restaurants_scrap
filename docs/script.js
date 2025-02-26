@@ -1,12 +1,12 @@
 document.addEventListener("DOMContentLoaded", function () {
     const articlesDiv = document.getElementById("articles");
-    const backendUrl = "https://restaurants-scrap.onrender.com";
+    const backendUrl = "https://restaurants-scrap.onrender.com/api";  // Must include /api prefix
 
     articlesDiv.innerHTML = "<p>Loading articles...</p>";
 
     fetch(`${backendUrl}/articles`)
         .then(response => {
-            if (!response.ok) throw new Error("Network response was not ok");
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
         })
         .then(data => {
@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch(error => {
             console.error("Error loading articles:", error);
-            articlesDiv.innerHTML = "<p class='error'>Error loading articles. Check console for details.</p>";
+            articlesDiv.innerHTML = `<p class='error'>Error loading articles: ${error.message}. Check console for details.</p>`;
         });
 
     // Handle form submission
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
             body: JSON.stringify(selections)
         })
         .then(response => {
-            if (!response.ok) throw new Error("Failed to submit selection");
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
         })
         .then(data => alert("Selection saved!"))
