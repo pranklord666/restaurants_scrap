@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_migrate import Migrate
 import os
+from urllib.parse import urlparse, parse_qs
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -10,8 +11,13 @@ migrate = Migrate()
 def create_app():
     app = Flask(__name__, static_folder='docs', static_url_path='/docs')
     
-    # Load database URL from environment variable
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+    # Load and modify DATABASE_URL to ensure SSL
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        parsed_url = urlparse(db_url)
+        if not parse_qs(parsed_url.query).get('sslmode'):
+            db_url += "?sslmode=require"
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or "sqlite:///default.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     
     # Initialize database and migrate
