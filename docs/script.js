@@ -1,5 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
     const articlesDiv = document.getElementById("articles");
+    const summariesDiv = document.getElementById("summaries");
+    const summaryText = document.getElementById("summaryText");
     const backendUrl = "https://restaurants-scrap.onrender.com/api";
 
     articlesDiv.innerHTML = "<p>Loading articles...</p>";
@@ -53,18 +55,26 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(data => {
             alert("Selection saved!");
-            // Optionally, fetch and display results to confirm
+            // Fetch and display summaries
             fetch(`${backendUrl}/results`)
                 .then(resp => resp.json())
                 .then(results => {
-                    console.log("Updated results:", results);
-                    // You could update the UI here to show summaries
+                    summariesDiv.style.display = "block"; // Show the summaries section
+                    let summaryTextContent = "";
+                    results.forEach(result => {
+                        summaryTextContent += `Title: ${result.title}\nSummary: ${result.summary}\n\n`; // Format for copy-paste
+                    });
+                    summaryText.textContent = summaryTextContent.trim(); // Set the text in the pre element
                 })
-                .catch(err => console.error("Error loading results:", err));
+                .catch(err => {
+                    console.error("Error loading results:", err);
+                    summariesDiv.style.display = "none"; // Hide summaries on error
+                    alert(`Failed to load summaries: ${err.message}. Please try again later.`);
+                });
         })
         .catch(error => {
             console.error("Error submitting selection:", error);
             alert(`Failed to submit selection: ${error.message}. Please try again later.`);
         });
     });
-  });
+});
