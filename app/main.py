@@ -5,7 +5,6 @@ from tenacity import retry, stop_after_attempt, wait_exponential, wait_random, r
 import sqlalchemy
 import random
 import asyncio
-from mistralai import Mistral
 import httpx
 import os
 
@@ -15,7 +14,6 @@ main = Blueprint("main", __name__)
 api_key = os.getenv("MISTRAL_API_KEY")
 if not api_key:
     raise ValueError("MISTRAL_API_KEY environment variable not set")
-client = Mistral(api_key=api_key)
 
 def truncate_text(text, max_tokens):
     words = text.split()
@@ -46,12 +44,23 @@ async def generate_summary(raw_content, retry=3):
     )
 
     try:
-        response = await client.chat.completions.create(
-            model="mistral-large-latest",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        summary = response.choices[0].message.content.strip()
-        return summary
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.mistral.ai/v1/chat/completions",
+                headers={
+                    "Content-Type": "application/json; charset=utf-8",
+                    "Authorization": f"Bearer {api_key}"
+                },
+                json={
+                    "model": "mistral-large-latest",
+                    "messages": [{"role": "user", "content": prompt}]
+                },
+                timeout=httpx.Timeout(60.0)
+            )
+            response.raise_for_status()
+            response_data = response.json()
+            summary = response_data['choices'][0]['message']['content'].strip()
+            return summary
 
     except httpx.ReadTimeout as e:
         print(f"Timeout error generating summary: {e}")
@@ -119,7 +128,7 @@ async def get_results():
 
     return jsonify([{"title": a.title, "summary": a.summary} for a in articles])
 
-# Ensure async compatibility for WSGI
+# Ensure async compatibility for WSGI (Gunicorn handles this on Render)
 from werkzeug.wsgi import DispatcherMiddleware
 from werkzeug.serving import run_simple
 
