@@ -94,11 +94,16 @@ document.addEventListener("DOMContentLoaded", function () {
                         return resp.json();
                     })
                     .then(results => {
+                        console.log("Results from /api/results:", results);  // Debug log
                         loadingIndicator.remove(); // Remove loading animation
                         let summaryTextContent = "";
-                        results.forEach(result => {
-                            summaryTextContent += `Title: ${result.title}\nSummary: ${result.summary}\n\n`; // Format for copy-paste
-                        });
+                        if (results.length === 0) {
+                            summaryTextContent = "No summaries available for selected articles.";
+                        } else {
+                            results.forEach(result => {
+                                summaryTextContent += `Title: ${result.title || 'Untitled'}\nSummary: ${result.summary || 'No summary available'}\n\n`; // Handle missing data
+                            });
+                        }
                         summaryText.textContent = summaryTextContent.trim(); // Set the text in the pre element
                     })
                     .catch(err => {
