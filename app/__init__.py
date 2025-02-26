@@ -27,8 +27,9 @@ def create_app(environ=None, start_response=None):
     # Enable CORS for all routes, allowing requests from GitHub Pages with specific methods and headers
     CORS(app, resources={r"/api/*": {
         "origins": ["https://pranklord666.github.io", "https://pranklord666.github.io/restaurants_scrap"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "methods": ["GET", "POST", "OPTIONS", "HEAD"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
     }})
 
     # Register blueprints with API prefix
@@ -40,3 +41,6 @@ def create_app(environ=None, start_response=None):
         db.create_all()
 
     return app
+
+# Optional: Define a WSGI application directly for Gunicorn
+application = create_app()
