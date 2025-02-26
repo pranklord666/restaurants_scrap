@@ -6,7 +6,7 @@ class Article(db.Model):
     date = db.Column(db.Text)
     title = db.Column(db.Text, nullable=False)
     raw_content = db.Column(db.Text)
-    summary = db.Column(db.Text)  # Ensure this is present
+    summary = db.Column(db.Text)  # Ensure this is present for Mistral summaries
     keyword = db.Column(db.Text)
     link = db.Column(db.Text, unique=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
