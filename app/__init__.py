@@ -24,8 +24,12 @@ def create_app(environ=None, start_response=None):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Enable CORS for all routes, allowing requests from GitHub Pages
-    CORS(app, resources={r"/api/*": {"origins": "https://pranklord666.github.io"}})
+    # Enable CORS for all routes, allowing requests from GitHub Pages with specific methods and headers
+    CORS(app, resources={r"/api/*": {
+        "origins": ["https://pranklord666.github.io", "https://pranklord666.github.io/restaurants_scrap"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }})
 
     # Register blueprints with API prefix
     from .main import main as main_blueprint
