@@ -139,14 +139,14 @@ async def get_results():
     articles = Article.query.filter_by(status="in").all()
     logger.info(f"Found {len(articles)} articles with status 'in'")
     
-    # Generate summaries for all "in" articles using Mistral
+    # Generate summaries for all "in" articles using Mistral, even if summary exists but is empty or None
     tasks = []
     for article in articles:
         logger.debug(f"Processing article: {article.title}")
-        if not article.summary or article.summary.startswith("Résumé non généré"):
-            tasks.append(generate_summary(article.raw_content))
+        if not article.summary or not article.summary.strip() or article.summary.startswith("Résumé non généré"):
+            tasks.append(generate_summary(article.raw_content or ""))
         else:
-            tasks.append(asyncio.Future())  # Use existing summary if available
+            tasks.append(asyncio.Future())  # Use existing summary if available and non-empty
             tasks[-1].set_result(article.summary)
 
     summaries = await asyncio.gather(*tasks)
@@ -154,14 +154,19 @@ async def get_results():
     # Update articles with new summaries and log each update
     updated_count = 0
     for article, summary in zip(articles, summaries):
-        if not article.summary or article.summary.startswith("Résumé non généré"):
-            article.summary = summary
+        if not article.summary or not article.summary.strip() or article.summary.startswith("Résumé non généré"):
+            article.summary = summary if summary and summary.strip() else "No summary available"
             updated_count += 1
             logger.info(f"Updated summary for article '{article.title}': {summary[:50]}...")
+        else:
+            logger.debug(f"Kept existing summary for article '{article.title}': {article.summary[:50]}...")
     db.session.commit()
     logger.info(f"Updated {updated_count} article summaries")
 
-    return jsonify([{"title": a.title, "summary": a.summary} for a in articles])
+    # Return results, ensuring summaries are included even if empty
+    results = [{"title": a.title, "summary": a.summary or "No summary available"} for a in articles]
+    logger.debug(f"Returning results: {results}")
+    return jsonify(results)
 
 # Ensure async compatibility for WSGI (Gunicorn handles this on Render)
 from werkzeug.middleware.dispatcher import DispatcherMiddleware  # Updated import
