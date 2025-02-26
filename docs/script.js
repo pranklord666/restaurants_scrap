@@ -67,4 +67,4 @@ document.addEventListener("DOMContentLoaded", function () {
             alert(`Failed to submit selection: ${error.message}. Please try again later.`);
         });
     });
-});
+  });
