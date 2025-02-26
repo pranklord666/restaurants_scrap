@@ -7,6 +7,11 @@ import random
 import asyncio
 import httpx
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 main = Blueprint("main", __name__)
 
@@ -63,15 +68,15 @@ async def generate_summary(raw_content, retry=3):
             return summary
 
     except httpx.ReadTimeout as e:
-        print(f"Timeout error generating summary: {e}")
+        logger.error(f"Timeout error generating summary: {e}")
         if retry > 0:
-            print("Retrying summary generation...")
+            logger.info("Retrying summary generation...")
             await asyncio.sleep(2)  # Wait before retry
             return await generate_summary(raw_content, retry=retry-1)
         return "Résumé non généré en raison d'une erreur de timeout."
 
     except Exception as e:
-        print(f"Error generating summary: {e}")
+        logger.error(f"Error generating summary: {e}")
         return "Résumé non généré en raison d'une erreur inattendue."
 
 @retry(
@@ -91,13 +96,36 @@ def get_articles():
 )
 @main.route("/update-selection", methods=["POST"])
 def update_selection():
-    selections = request.get_json()
-    for article_id, status in selections.items():
-        article = Article.query.get(article_id)
-        if article:
-            article.status = "in" if status == "in" else "out"
-    db.session.commit()
-    return jsonify({"message": "Selection saved"})
+    try:
+        if not request.is_json:
+            logger.error("Request is not JSON")
+            return jsonify({"error": "Request must be JSON"}), 400
+        
+        selections = request.get_json()
+        if not isinstance(selections, dict):
+            logger.error("Selections must be a dictionary")
+            return jsonify({"error": "Invalid data format"}), 400
+
+        for article_id, status in selections.items():
+            try:
+                article_id = int(article_id)  # Ensure article_id is an integer
+                article = Article.query.get(article_id)
+                if article:
+                    article.status = "in" if status == "in" else "out"
+                else:
+                    logger.warning(f"Article with ID {article_id} not found")
+            except ValueError:
+                logger.error(f"Invalid article ID: {article_id}")
+                return jsonify({"error": f"Invalid article ID: {article_id}"}), 400
+
+        db.session.commit()
+        logger.info("Selection saved successfully")
+        return jsonify({"message": "Selection saved"})
+
+    except Exception as e:
+        logger.error(f"Error processing update-selection: {str(e)}")
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 @retry(
     stop=stop_after_attempt(10),
