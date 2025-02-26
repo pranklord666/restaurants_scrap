@@ -21,12 +21,14 @@ if not api_key:
     raise ValueError("MISTRAL_API_KEY environment variable not set")
 
 def truncate_text(text, max_tokens):
+    if not text or not isinstance(text, str):
+        return ""
     words = text.split()
     truncated_text = []
     current_length = 0
     for word in words:
         current_length += len(word) + 1
-        if current_length > 16000:  # Match your Mistral prompt limit
+        if current_length > max_tokens:  # Match your Mistral prompt limit
             break
         truncated_text.append(word)
     return ' '.join(truncated_text)
@@ -34,6 +36,10 @@ def truncate_text(text, max_tokens):
 async def generate_summary(raw_content, retry=3):
     max_tokens = 16000
     truncated_content = truncate_text(raw_content, max_tokens)
+    if not truncated_content.strip():
+        logger.warning("Empty or invalid raw_content provided for summary generation")
+        return "No summary available due to empty content"
+
     prompt = (
         "Tu es un auteur inspiré, doté d'une plume unique et captivante. Je vais te fournir un texte, "
         "et ta mission est de le condenser en un résumé autonome, qui ne fait aucune référence à un article, à une source ou à un contexte extérieur. "
@@ -66,7 +72,7 @@ async def generate_summary(raw_content, retry=3):
             response_data = response.json()
             summary = response_data['choices'][0]['message']['content'].strip()
             logger.info(f"Generated summary: {summary[:50]}...")  # Log first 50 chars of summary
-            return summary
+            return summary if summary and summary.strip() else "No summary available from Mistral"
 
     except httpx.ReadTimeout as e:
         logger.error(f"Timeout error generating summary: {e}")
@@ -74,11 +80,11 @@ async def generate_summary(raw_content, retry=3):
             logger.info("Retrying summary generation...")
             await asyncio.sleep(2)  # Wait before retry
             return await generate_summary(raw_content, retry=retry-1)
-        return "Résumé non généré en raison d'une erreur de timeout."
+        return "No summary available due to timeout error"
 
     except Exception as e:
         logger.error(f"Error generating summary: {e}")
-        return "Résumé non généré en raison d'une erreur inattendue."
+        return "No summary available due to an unexpected error"
 
 @retry(
     stop=stop_after_attempt(10),
@@ -139,31 +145,31 @@ async def get_results():
     articles = Article.query.filter_by(status="in").all()
     logger.info(f"Found {len(articles)} articles with status 'in'")
     
-    # Generate summaries for all "in" articles using Mistral, even if summary exists but is empty or None
+    # Generate summaries for all "in" articles using Mistral, forcing updates if raw_content exists
     tasks = []
     for article in articles:
         logger.debug(f"Processing article: {article.title}")
-        if not article.summary or not article.summary.strip() or article.summary.startswith("Résumé non généré"):
-            tasks.append(generate_summary(article.raw_content or ""))
+        if article.raw_content and article.raw_content.strip():
+            tasks.append(generate_summary(article.raw_content))
         else:
-            tasks.append(asyncio.Future())  # Use existing summary if available and non-empty
-            tasks[-1].set_result(article.summary)
+            tasks.append(asyncio.Future())
+            tasks[-1].set_result(article.summary or "No raw content available for summary")
 
     summaries = await asyncio.gather(*tasks)
 
     # Update articles with new summaries and log each update
     updated_count = 0
     for article, summary in zip(articles, summaries):
-        if not article.summary or not article.summary.strip() or article.summary.startswith("Résumé non généré"):
+        if article.raw_content and article.raw_content.strip():
             article.summary = summary if summary and summary.strip() else "No summary available"
             updated_count += 1
             logger.info(f"Updated summary for article '{article.title}': {summary[:50]}...")
         else:
-            logger.debug(f"Kept existing summary for article '{article.title}': {article.summary[:50]}...")
+            logger.warning(f"No raw_content for article '{article.title}', kept summary: {article.summary or 'None'}")
     db.session.commit()
     logger.info(f"Updated {updated_count} article summaries")
 
-    # Return results, ensuring summaries are included even if empty
+    # Return results, ensuring summaries are included even if empty or default
     results = [{"title": a.title, "summary": a.summary or "No summary available"} for a in articles]
     logger.debug(f"Returning results: {results}")
     return jsonify(results)
