@@ -16,11 +16,11 @@ def create_app():
     db.init_app(app)
 
     # Enable CORS for all routes, allowing requests from GitHub Pages
-    CORS(app, resources={r"/*": {"origins": "https://pranklord666.github.io"}})
+    CORS(app, resources={r"/api/*": {"origins": "https://pranklord666.github.io"}})
 
-    # Register blueprints
+    # Register blueprints with API prefix
     from .main import main as main_blueprint
-    app.register_blueprint(main_blueprint, url_prefix='/api')  # Optional: Add API prefix
+    app.register_blueprint(main_blueprint, url_prefix='/api')
 
     # Create tables if they don't exist
     with app.app_context():
