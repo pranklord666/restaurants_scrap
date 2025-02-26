@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadingIndicator.id = "loading";
     loadingIndicator.style.textAlign = "center";
     loadingIndicator.style.marginTop = "20px";
-    loadingIndicator.innerHTML = '<div class="spinner"></div><p>Loading summaries...</p>';
+    loadingIndicator.innerHTML = '<div class="spinner"></div><p>Generating summaries (10-20s)...</p>';
     const backendUrl = "https://restaurants-scrap.onrender.com/api";
 
     // Add spinner CSS
@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     articlesDiv.innerHTML = "<p>Loading articles...</p>";
 
-    fetch(`${backendUrl}/articles`)
+    fetch(`${backendUrl}/articles`, { timeout: 30000 })  // Increase timeout for potential SSL retries
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
@@ -68,46 +68,42 @@ document.addEventListener("DOMContentLoaded", function () {
             selections[articleId] = input.value;
         });
 
-        fetch(`${backendUrl}/update-selection`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(selections)
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            alert("Selection saved!");
-            // Show loading animation
-            summariesDiv.style.display = "block";
-            summariesDiv.innerHTML = "";
-            summariesDiv.appendChild(loadingIndicator);
+        fetch(`${backendUrl}/update-selection`, { timeout: 30000 })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                alert("Selection saved!");
+                // Show loading animation
+                summariesDiv.style.display = "block";
+                summariesDiv.innerHTML = "";
+                summariesDiv.appendChild(loadingIndicator);
 
-            // Fetch and display summaries
-            fetch(`${backendUrl}/results`)
-                .then(resp => {
-                    if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
-                    return resp.json();
-                })
-                .then(results => {
-                    loadingIndicator.remove(); // Remove loading animation
-                    let summaryTextContent = "";
-                    results.forEach(result => {
-                        summaryTextContent += `Title: ${result.title}\nSummary: ${result.summary}\n\n`; // Format for copy-paste
+                // Fetch and display summaries with longer timeout
+                fetch(`${backendUrl}/results`, { timeout: 30000 })  // Increased timeout for Mistral (10-20s)
+                    .then(resp => {
+                        if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
+                        return resp.json();
+                    })
+                    .then(results => {
+                        loadingIndicator.remove(); // Remove loading animation
+                        let summaryTextContent = "";
+                        results.forEach(result => {
+                            summaryTextContent += `Title: ${result.title}\nSummary: ${result.summary}\n\n`; // Format for copy-paste
+                        });
+                        summaryText.textContent = summaryTextContent.trim(); // Set the text in the pre element
+                    })
+                    .catch(err => {
+                        console.error("Error loading results:", err);
+                        loadingIndicator.remove(); // Remove loading animation on error
+                        summariesDiv.innerHTML = `<p class='error'>Failed to load summaries: ${err.message}. Please try again later.</p>`;
+                        alert(`Failed to load summaries: ${err.message}. Please try again later.`);
                     });
-                    summaryText.textContent = summaryTextContent.trim(); // Set the text in the pre element
-                })
-                .catch(err => {
-                    console.error("Error loading results:", err);
-                    loadingIndicator.remove(); // Remove loading animation on error
-                    summariesDiv.innerHTML = `<p class='error'>Failed to load summaries: ${err.message}. Please try again later.</p>`;
-                    alert(`Failed to load summaries: ${err.message}. Please try again later.`);
-                });
-        })
-        .catch(error => {
-            console.error("Error submitting selection:", error);
-            alert(`Failed to submit selection: ${error.message}. Please try again later.`);
-        });
+            })
+            .catch(error => {
+                console.error("Error submitting selection:", error);
+                alert(`Failed to submit selection: ${error.message}. Please try again later.`);
+            });
     });
 });
