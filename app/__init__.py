@@ -40,7 +40,8 @@ def create_app(environ=None, start_response=None):
     with app.app_context():
         db.create_all()
 
+    # Ensure the app is WSGI-compliant by returning it directly
     return app
 
-# Optional: Define a WSGI application directly for Gunicorn
+# Define a WSGI application object for Gunicorn
 application = create_app()
