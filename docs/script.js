@@ -68,7 +68,14 @@ document.addEventListener("DOMContentLoaded", function () {
             selections[articleId] = input.value;
         });
 
-        fetch(`${backendUrl}/update-selection`, { timeout: 30000 })
+        console.log("Selections being sent:", selections);  // Debug log
+
+        fetch(`${backendUrl}/update-selection`, { 
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(selections),
+            timeout: 30000 
+        })
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return response.json();
