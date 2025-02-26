@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qs
 db = SQLAlchemy()
 migrate = Migrate()
 
-def create_app():
+def create_app(environ=None, start_response=None):
     app = Flask(__name__, static_folder='docs', static_url_path='/docs')
     
     # Load and modify DATABASE_URL to ensure SSL
