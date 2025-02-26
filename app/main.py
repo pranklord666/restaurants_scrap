@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from . import db
 from .models import Article
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
+import sqlalchemy  # Add this import
 
 main = Blueprint("main", __name__)
 
