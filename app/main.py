@@ -8,6 +8,7 @@ import asyncio
 import httpx
 import os
 import logging
+from mistralai import Mistral
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +20,7 @@ main = Blueprint("main", __name__)
 api_key = os.getenv("MISTRAL_API_KEY")
 if not api_key:
     raise ValueError("MISTRAL_API_KEY environment variable not set")
+client = Mistral(api_key=api_key)
 
 def truncate_text(text, max_tokens):
     words = text.split()
@@ -26,7 +28,7 @@ def truncate_text(text, max_tokens):
     current_length = 0
     for word in words:
         current_length += len(word) + 1
-        if current_length > 16000:  # Match your Mistral prompt limit
+        if current_length > max_tokens:
             break
         truncated_text.append(word)
     return ' '.join(truncated_text)
@@ -49,34 +51,20 @@ async def generate_summary(raw_content, retry=3):
     )
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.mistral.ai/v1/chat/completions",
-                headers={
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Authorization": f"Bearer {api_key}"
-                },
-                json={
-                    "model": "mistral-large-latest",
-                    "messages": [{"role": "user", "content": prompt}]
-                },
-                timeout=httpx.Timeout(60.0)
-            )
-            response.raise_for_status()
-            response_data = response.json()
-            summary = response_data['choices'][0]['message']['content'].strip()
-            return summary
+        # Use Mistral client for async API call
+        response = await client.chat.complete(
+            model="mistral-large-latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        summary = response.choices[0].message.content.strip()
+        return summary
 
-    except httpx.ReadTimeout as e:
-        logger.error(f"Timeout error generating summary: {e}")
+    except Exception as e:
+        logger.error(f"Error generating summary with Mistral: {e}")
         if retry > 0:
             logger.info("Retrying summary generation...")
             await asyncio.sleep(2)  # Wait before retry
             return await generate_summary(raw_content, retry=retry-1)
-        return "Résumé non généré en raison d'une erreur de timeout."
-
-    except Exception as e:
-        logger.error(f"Error generating summary: {e}")
         return "Résumé non généré en raison d'une erreur inattendue."
 
 @retry(
@@ -134,27 +122,33 @@ def update_selection():
 )
 @main.route("/results", methods=["GET"])
 async def get_results():
-    # First, get articles with status "in"
-    articles = Article.query.filter_by(status="in").all()
-    
-    # Generate summaries for all "in" articles using Mistral
-    tasks = []
-    for article in articles:
-        if not article.summary or article.summary.startswith("Résumé non généré"):
-            tasks.append(generate_summary(article.raw_content))
-        else:
-            tasks.append(asyncio.Future())  # Use existing summary if available
-            tasks[-1].set_result(article.summary)
+    try:
+        # First, get articles with status "in"
+        articles = Article.query.filter_by(status="in").all()
+        
+        # Generate summaries for all "in" articles using Mistral
+        tasks = []
+        for article in articles:
+            if not article.summary or article.summary.startswith("Résumé non généré"):
+                tasks.append(generate_summary(article.raw_content))
+            else:
+                tasks.append(asyncio.Future())  # Use existing summary if available
+                tasks[-1].set_result(article.summary)
 
-    summaries = await asyncio.gather(*tasks)
+        summaries = await asyncio.gather(*tasks)
 
-    # Update articles with new summaries
-    for article, summary in zip(articles, summaries):
-        if not article.summary or article.summary.startswith("Résumé non généré"):
-            article.summary = summary
-    db.session.commit()
+        # Update articles with new summaries
+        for article, summary in zip(articles, summaries):
+            if not article.summary or article.summary.startswith("Résumé non généré"):
+                article.summary = summary
+        db.session.commit()
 
-    return jsonify([{"title": a.title, "summary": a.summary} for a in articles])
+        return jsonify([{"title": a.title, "summary": a.summary} for a in articles])
+
+    except Exception as e:
+        logger.error(f"Error processing results: {str(e)}")
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 # Ensure async compatibility for WSGI (Gunicorn handles this on Render)
 from werkzeug.middleware.dispatcher import DispatcherMiddleware  # Updated import
