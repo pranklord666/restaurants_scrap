@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     const articlesDiv = document.getElementById("articles");
-    const backendUrl = "https://restaurants-scrap.onrender.com/api";  // Must include /api prefix
+    const backendUrl = "https://restaurants-scrap.onrender.com/api";
 
     articlesDiv.innerHTML = "<p>Loading articles...</p>";
 
@@ -51,7 +51,20 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
         })
-        .then(data => alert("Selection saved!"))
-        .catch(error => console.error("Error submitting selection:", error));
+        .then(data => {
+            alert("Selection saved!");
+            // Optionally, fetch and display results to confirm
+            fetch(`${backendUrl}/results`)
+                .then(resp => resp.json())
+                .then(results => {
+                    console.log("Updated results:", results);
+                    // You could update the UI here to show summaries
+                })
+                .catch(err => console.error("Error loading results:", err));
+        })
+        .catch(error => {
+            console.error("Error submitting selection:", error);
+            alert(`Failed to submit selection: ${error.message}. Please try again later.`);
+        });
     });
 });
