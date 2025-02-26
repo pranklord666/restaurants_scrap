@@ -12,3 +12,4 @@ gunicorn==23.0.0
 tenacity==8.5.0
 python-dotenv==1.0.1
 nltk==3.9.1
+mistralai==0.4.2  # Add this line (use the latest version compatible with your Python)
