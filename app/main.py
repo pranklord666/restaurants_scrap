@@ -129,7 +129,7 @@ async def get_results():
     return jsonify([{"title": a.title, "summary": a.summary} for a in articles])
 
 # Ensure async compatibility for WSGI (Gunicorn handles this on Render)
-from werkzeug.wsgi import DispatcherMiddleware
+from werkzeug.middleware.dispatcher import DispatcherMiddleware  # Updated import
 from werkzeug.serving import run_simple
 
 if __name__ == "__main__":
