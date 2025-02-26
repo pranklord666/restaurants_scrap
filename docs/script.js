@@ -109,6 +109,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                         if (!summaryTextContent.trim()) {
                             summaryTextContent = "No valid summaries available.";
+                        } else if (summaryTextContent.includes("No summary available")) {
+                            summaryTextContent += "\nNote: Some articles may lack summaries due to missing content or API issues.";
                         }
                         summaryText.textContent = summaryTextContent.trim(); // Set the text in the pre element
                     })
