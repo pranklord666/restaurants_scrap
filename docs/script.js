@@ -101,8 +101,14 @@ document.addEventListener("DOMContentLoaded", function () {
                             summaryTextContent = "No summaries available for selected articles.";
                         } else {
                             results.forEach(result => {
-                                summaryTextContent += `Title: ${result.title || 'Untitled'}\nSummary: ${result.summary || 'No summary available'}\n\n`; // Handle missing data
+                                const title = result.title || 'Untitled';
+                                const summary = result.summary || 'No summary available';
+                                summaryTextContent += `Title: ${title}\nSummary: ${summary}\n\n`; // Handle missing data
+                                console.log(`Processing result - Title: ${title}, Summary: ${summary}`);  // Debug each result
                             });
+                        }
+                        if (!summaryTextContent.trim()) {
+                            summaryTextContent = "No valid summaries available.";
                         }
                         summaryText.textContent = summaryTextContent.trim(); // Set the text in the pre element
                     })
