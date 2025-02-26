@@ -65,6 +65,7 @@ async def generate_summary(raw_content, retry=3):
             response.raise_for_status()
             response_data = response.json()
             summary = response_data['choices'][0]['message']['content'].strip()
+            logger.info(f"Generated summary: {summary[:50]}...")  # Log first 50 chars of summary
             return summary
 
     except httpx.ReadTimeout as e:
@@ -136,10 +137,12 @@ def update_selection():
 async def get_results():
     # First, get articles with status "in"
     articles = Article.query.filter_by(status="in").all()
+    logger.info(f"Found {len(articles)} articles with status 'in'")
     
     # Generate summaries for all "in" articles using Mistral
     tasks = []
     for article in articles:
+        logger.debug(f"Processing article: {article.title}")
         if not article.summary or article.summary.startswith("Résumé non généré"):
             tasks.append(generate_summary(article.raw_content))
         else:
@@ -148,11 +151,15 @@ async def get_results():
 
     summaries = await asyncio.gather(*tasks)
 
-    # Update articles with new summaries
+    # Update articles with new summaries and log each update
+    updated_count = 0
     for article, summary in zip(articles, summaries):
         if not article.summary or article.summary.startswith("Résumé non généré"):
             article.summary = summary
+            updated_count += 1
+            logger.info(f"Updated summary for article '{article.title}': {summary[:50]}...")
     db.session.commit()
+    logger.info(f"Updated {updated_count} article summaries")
 
     return jsonify([{"title": a.title, "summary": a.summary} for a in articles])
 
